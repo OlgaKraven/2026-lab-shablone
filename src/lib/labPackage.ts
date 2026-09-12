@@ -5,7 +5,7 @@ import css from '../styles.css?inline'
 import extraCss from '../template.css?inline'
 const fetchBytes=async(path:string)=>{const r=await fetch(import.meta.env.BASE_URL+path);if(!r.ok)throw Error(`Не найден файл ${path}`);return new Uint8Array(await r.arrayBuffer())}
 const csv=(rows:(string|number)[][])=>'\uFEFF'+rows.map(row=>row.map(v=>'"'+String(v).replaceAll('"','""')+'"').join(';')).join('\r\n')
-export async function downloadBundle({labs,area,profile,renderPage}:{labs:Lab[];area:SubjectArea;profile:QualityProfile;renderPage:(lab:Lab)=>string}){
+async function buildFiles({labs,area,profile,renderPage}:{labs:Lab[];area:SubjectArea;profile:QualityProfile;renderPage:(lab:Lab)=>string}){
  if(!labs.length)throw Error('Нет работ в комплекте')
  const files:Record<string,Uint8Array>={};const font=await fetchBytes('fonts/raleway-cyrillic.woff2');
  files['assets/raleway.woff2']=font;files['assets/styles.css']=strToU8(css.replace(/url\([^)]*raleway[^)]*\)/g,"url('raleway.woff2')")+'\n'+extraCss+'\n.course-controls,.lab-summary,.lab-pager{display:none}.lab-page-grid{grid-template-columns:1fr}.variant-picker.compact{position:static}.lab-hero{display:block}');
@@ -19,5 +19,17 @@ export async function downloadBundle({labs,area,profile,renderPage}:{labs:Lab[];
  }
  files['Состав_комплекта.md']=strToU8(`# Комплект варианта ${area.code} — ${area.title}\n\n${labs.map(l=>`- ЛР ${l.slug}: ${l.title} (${l.semester} семестр)`).join('\n')}\n\nРаспакуйте весь архив, чтобы сохранить оформление HTML. Каждая папка ЛР содержит только материалы соответствующей работы.\n`);
  files['manifest.json']=strToU8(JSON.stringify({schemaVersion:1,variant:area.code,labs:labs.map(l=>({id:l.slug,semester:l.semester})),files:Object.keys(files)},null,2));
- const zip=zipSync(files,{level:6});const href=URL.createObjectURL(new Blob([zip],{type:'application/zip'}));const a=document.createElement('a');a.href=href;a.download=`${area.code}_${labs.length===1?'ЛР'+labs[0].slug:new Set(labs.map(l=>l.semester)).size===1?'семестр_'+labs[0].semester:'все_работы'}.zip`;a.click();setTimeout(()=>URL.revokeObjectURL(href),10000)
+ return files
+}
+type BundleInput=Parameters<typeof buildFiles>[0]
+function saveZip(files:Record<string,Uint8Array>,name:string){const zip=zipSync(files,{level:6});const href=URL.createObjectURL(new Blob([zip],{type:'application/zip'}));const a=document.createElement('a');a.href=href;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(href),10000)}
+export async function downloadBundle(input:BundleInput){const {area,labs}=input;saveZip(await buildFiles(input),`${area.code}_${labs.length===1?'ЛР'+labs[0].slug:new Set(labs.map(l=>l.semester)).size===1?'семестр_'+labs[0].semester:'все_работы'}.zip`)}
+export async function downloadAllVariants(inputs:BundleInput[]){
+ if(!inputs.length)throw Error('Нет вариантов')
+ const files:Record<string,Uint8Array>={}
+ for(const input of inputs){const variantFiles=await buildFiles(input);for(const [path,bytes] of Object.entries(variantFiles)){if(path==='manifest.json'||path==='Состав_комплекта.md')files[`${input.area.code}/${path}`]=bytes;else files[path]=bytes}}
+ const labs=inputs[0].labs
+ files['Состав_комплекта.md']=strToU8(`# Комплект преподавателя — все варианты\n\n${inputs.map(i=>`- ${i.area.code}: ${i.area.title}`).join('\n')}\n\n${labs.map(l=>`- ЛР ${l.slug} (${l.semester} семестр)`).join('\n')}\n\nРаспакуйте архив полностью. Сохраните общую папку assets рядом с папками вариантов.\n`)
+ files['manifest.json']=strToU8(JSON.stringify({schemaVersion:1,scope:'all-variants',variants:inputs.map(i=>i.area.code),labs:labs.map(l=>({id:l.slug,semester:l.semester})),files:Object.keys(files)},null,2))
+ saveZip(files,`Все_варианты_${new Set(labs.map(l=>l.semester)).size===1?'семестр_'+labs[0].semester:'все_семестры'}.zip`)
 }

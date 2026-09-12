@@ -82,7 +82,7 @@ function CourseApp() {
 
   if (route.kind === 'lab' && lab) return <><LabPage lab={lab} subjectArea={subjectArea} profile={profile} onSubjectAreaChange={selectSubjectArea} /></>
   if (route.kind === 'lab') return <NotFound />
-  return <><SiteControls downloadSemester={sem=>bundle(labs.filter(l=>sem===null||l.semester===sem),subjectArea,profile)} /><Home subjectArea={subjectArea} profile={profile} onSubjectAreaChange={selectSubjectArea} /></>
+  return <><SiteControls downloadSemester={sem=>teacherBundle(labs.filter(l=>sem===null||l.semester===sem))} /><Home subjectArea={subjectArea} profile={profile} onSubjectAreaChange={selectSubjectArea} /></>
 }
 
 function Brand() {
@@ -480,3 +480,8 @@ async function bundle(selected:Lab[],area:SubjectArea,profile:QualityProfile){co
 function DownloadButton({labs:selected,area,profile,compact=false,all=false}:{labs:Lab[];area:SubjectArea;profile:QualityProfile;compact?:boolean;all?:boolean}){const [busy,setBusy]=useState(false);const [error,setError]=useState('');return <><button className={compact?'card-download':all?'button secondary':'button primary'} disabled={busy} aria-label={compact?`Скачать лабораторную работу ЛР ${selected[0].slug}`:undefined} onClick={async()=>{setBusy(true);setError('');try{await bundle(selected,area,profile)}catch{setError('Не удалось подготовить архив. Повторите скачивание.')}finally{setBusy(false)}}}><Download size={18}/>{compact?'':busy?'Готовим архив…':all?'Комплект всех работ для варианта':'Скачать лабораторную работу'}</button>{error&&<p role="alert">{error}</p>}</>}
 export function App(){return <PreferencesProvider><CourseApp/></PreferencesProvider>}
 
+
+async function teacherBundle(selected:Lab[]){
+ const [{downloadAllVariants},{renderToStaticMarkup}]=await Promise.all([import('./lib/labPackage'),import('react-dom/server')])
+ return downloadAllVariants(subjectAreas.map(area=>{const profile=profiles.find(p=>p.id===area.profileId);if(!profile)throw Error('Не найден профиль варианта');return {labs:selected,area,profile,renderPage:(lab:Lab)=>renderToStaticMarkup(<LabPage lab={lab} subjectArea={area} profile={profile} onSubjectAreaChange={()=>{}} />)}}))
+}
