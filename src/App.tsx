@@ -56,7 +56,7 @@ function CourseApp() {
 
   const selectSubjectArea = (id: number) => {
     setSubjectAreaId(id)
-    window.localStorage.setItem('okfks-subject-area', String(id))
+    window.localStorage.setItem('lab-template-subject-area', String(id))
   }
 
   useEffect(() => {
@@ -80,7 +80,7 @@ function CourseApp() {
     window.scrollTo({ top: 0, behavior: 'instant' })
   }, [lab, route.kind])
 
-  if (route.kind === 'lab' && lab) return <><LabPage lab={lab} subjectArea={subjectArea} profile={profile} onSubjectAreaChange={selectSubjectArea} /></>
+  if (route.kind === 'lab' && lab) return <><LabPage key={`${lab.slug}-${subjectArea.id}`} lab={lab} subjectArea={subjectArea} profile={profile} onSubjectAreaChange={selectSubjectArea} /></>
   if (route.kind === 'lab') return <NotFound />
   return <><SiteControls downloadSemester={sem=>teacherBundle(labs.filter(l=>sem===null||l.semester===sem))} /><Home subjectArea={subjectArea} profile={profile} onSubjectAreaChange={selectSubjectArea} /></>
 }
@@ -144,7 +144,16 @@ function Home({ subjectArea, profile, onSubjectAreaChange }: { subjectArea: Subj
           </div>
         </section>
 
-        <SubjectAreaPicker value={subjectArea} profile={profile} onChange={onSubjectAreaChange} />
+        <section className="student-start"><h2>С чего начать</h2><ol><li>Выберите вариант, который назначил преподаватель.</li><li>Откройте назначенную лабораторную работу в каталоге ниже.</li><li>На странице работы выполните пункты «Начните здесь».</li></ol><p>Если номер работы или вариант неизвестен, уточните его у преподавателя.</p></section><SubjectAreaPicker value={subjectArea} profile={profile} onChange={onSubjectAreaChange} />
+
+        <section className="student-start" aria-labelledby="archive-title">
+          <h2 id="archive-title">Что будет в архиве</h2>
+          <p><strong>В архиве одной лабораторной:</strong></p>
+          <ol><li><strong>Начните_здесь.html</strong> — откройте первым в браузере. Внутри: условия вашего варианта, исходные данные, пояснения, пример, шаги и самопроверка. Оформление встроено в файл, интернет не нужен.</li><li><strong>Шаблон_для_заполнения.docx</strong> — откройте в Word или другом редакторе DOCX. Заполните и сохраните отчёт.</li><li><strong>Папка «Данные»</strong> — CSV с исходными таблицами и условиями вашего варианта для работы в Excel или другом табличном редакторе. При импорте выберите UTF-8 и разделитель «точка с запятой».</li></ol>
+          <p><strong>Сначала распакуйте ZIP целиком.</strong> Затем открывайте файлы из распакованной папки.</p>
+          <p>«Комплект всех работ для варианта» содержит отдельную папку для каждой лабораторной. В каждой — задание, шаблон и папка CSV-данных соответствующей работы выбранного варианта <strong>{subjectArea.code}</strong>.</p>
+          <p>Заполненный DOCX передайте преподавателю указанным им способом. Сайт не отправляет отчёт автоматически.</p>
+        </section>
 
         <section className="catalog-section" id="labs" aria-labelledby="labs-title">
           <div className="section-heading catalog-heading">
@@ -238,15 +247,15 @@ function LmsRules() {
     'Выполните задание по выданным исходным данным.',
     'Заполните отчёт и удалите все серые подсказки.',
     'Сохраните результат одним файлом .docx с рекомендуемым именем.',
-    'Откройте соответствующее задание лабораторной работы в LMS.',
-    'Прикрепите подготовленный файл к заданию в LMS.',
-    'Откройте отправку и убедитесь, что файл действительно прикреплён.',
+    courseConfig.lmsUrl ? 'Откройте соответствующее задание в LMS.' : 'Уточните у преподавателя, куда передать отчёт: ссылка на LMS пока не задана.',
+    'Передайте DOCX способом, который указал преподаватель.',
+    'Проверьте переданный файл и сохраните подтверждение отправки.',
   ]
   return (
     <section className="lms-section" id="lms" aria-labelledby="lms-title">
       <div>
-        <p className="eyebrow">Единственное место сдачи</p>
-        <h2 id="lms-title">Один отчёт — одна отправка в LMS</h2>
+        <p className="eyebrow">Передача результата</p>
+        <h2 id="lms-title">Один отчёт для каждой работы</h2>
         <p>Сайт не принимает файлы и не проверяет ответы. Итоговый материал каждой работы — один документ Word.</p>
         {courseConfig.lmsUrl&&<a className="button primary" href={courseConfig.lmsUrl} target="_blank" rel="noreferrer">
           Открыть LMS <ExternalLink aria-hidden="true" size={17} />
@@ -293,31 +302,21 @@ function LabPage({ lab, subjectArea, profile, onSubjectAreaChange }: { lab: Lab;
           <article className="lab-content">
             <SubjectAreaPicker value={subjectArea} profile={profile} onChange={onSubjectAreaChange} compact />
 
-            <ContentSection id="situation" number="01" label="Контекст" title="Описание предметной области" icon={<Database aria-hidden="true" />}>
+
+            <section className="student-start" aria-labelledby="start-title">
+              <h2 id="start-title">Начните здесь</h2>
+              <p><strong>ЛР {lab.slug} · Ваш вариант: {subjectArea.code}</strong></p>
+              <ol><li>Скачайте архив этой работы.</li><li>Распакуйте его целиком. Откройте файл «Шаблон_для_заполнения.docx».</li><li>Заполните ФИО, группу и вариант {subjectArea.code}. Сохраните рабочую копию.</li><li>Раскройте «Данные и пример». Затем выполняйте шаги ниже по порядку.</li></ol>
+              <DownloadButton labs={[lab]} area={subjectArea} profile={profile}/>
+              <p><strong>Что нужно до начала:</strong> {methodology.sequence.previous}</p>
+              <p>Если предыдущая работа не готова, попросите преподавателя помочь восстановить результат или выдать учебный образец.</p>
+            </section>
+            <details className="student-reference"><summary>Данные и пример — прочитайте перед шагом 1</summary>
+            <ContentSection id="situation" number="А" label="Контекст" title="Описание предметной области" icon={<Database aria-hidden="true" />}>
               <div className="lead-card"><p>{subjectArea.code} · {subjectArea.title}. {subjectArea.description}</p><p>{labText(lab.situation)}</p></div>
               <div className="choice-callout"><strong>Профессиональный выбор</strong><p>{labText(lab.professionalChoice)}</p></div>
             </ContentSection>
-
-            <ContentSection id="goal" number="02" label="Результат обучения" title="Цель и формируемые умения" icon={<Target aria-hidden="true" />}>
-              <p><strong>Цель.</strong> {labText(lab.goal)}</p>
-              <h3>После выполнения вы сможете</h3>
-              <Checklist items={lab.outcomes.map(labText)} />
-            </ContentSection>
-
-            <ContentSection id="sequence" number="03" label="Связь работ" title="Место работы в последовательности" icon={<ArrowRight aria-hidden="true" />}>
-              <div className="sequence-grid">
-                <article><span>Результат этой лабораторной работы</span><p>{labText(lab.practicalResult)}</p></article>
-                <article><span>Данные для следующей работы</span><p>{methodology.sequence.next}</p></article>
-              </div>
-              <p className="continuity-note"><strong>Сохраните полученные результаты:</strong> они пригодятся в следующих работах этого варианта. {methodology.sequence.previous}</p><h3>Материалы текущей работы</h3>
-              <Checklist items={[
-                `Архив ЛР ${lab.slug}, вариант ${subjectArea.code}: задание, шаблон для заполнения и данные только этой работы`,
-                `таблицы, правила, ограничения и идентификаторы из раздела «Пояснение к задаче по предметной области»`,
-                `редактируемый шаблон ${lab.reportFile}`,
-              ]} />
-            </ContentSection>
-
-            <ContentSection id="inputs" number="04" label="Стартовый пакет" title="Пояснение к задаче по предметной области" icon={<Layers3 aria-hidden="true" />}>
+            <ContentSection id="inputs" number="Б" label="Стартовый пакет" title="Пояснение к задаче по предметной области" icon={<Layers3 aria-hidden="true" />}>
               <div className="variant-source-note"><strong>Набор {subjectArea.code}</strong><p>На странице и в ZIP-пакете показаны данные только для «{subjectArea.title}». Системный код: <code>{subjectArea.systemCode}</code>.</p><DownloadButton labs={[lab]} area={subjectArea} profile={profile}/></div>
               <p>{labText(lab.sourceData.intro)}</p>
               {lab.sourceData.sections.map((section) => (
@@ -336,16 +335,15 @@ function LabPage({ lab, subjectArea, profile, onSubjectAreaChange }: { lab: Lab;
               ))}
               <h3>Инструменты и допустимая среда</h3><Checklist items={lab.tools.map(labText)} compact />
             </ContentSection>
-
-            <ContentSection id="theory" number="05" label="Теория" title="Памятка для задачи" icon={<BookOpen aria-hidden="true" />}>
-              <div className="theory-grid">{lab.theoryCards.map((card) => (
-                <article className="theory-card" key={`${card.label}-${card.title}`}>
-                  <span>{labText(card.label)}</span><h3>{labText(card.title)}</h3><p>{labText(card.text)}</p>
+            <ContentSection id="profile" number="В" label="Ваш вариант" title="Условия вашего варианта" icon={<ShieldCheck aria-hidden="true" />}>
+              <p className="profile-intro">Для варианта {subjectArea.code} используйте значения ниже. Они определяют условия выполнения задания.</p>
+              <div className="characteristic-grid">{profile.characteristics.map((item) => (
+                <article className="characteristic-card" key={item.code}>
+                  <span>{item.code}</span><h3>{item.name}</h3><strong>{item.value}</strong><p>{item.example.replaceAll('{system}', subjectArea.title)}</p>
                 </article>
               ))}</div>
             </ContentSection>
-
-            <ContentSection id="example" number="06" label="Разобранный пример" title={methodology.example.title} icon={<BookOpen aria-hidden="true" />}>
+            <ContentSection id="example" number="Г" label="Разобранный пример" title={methodology.example.title} icon={<BookOpen aria-hidden="true" />}>
               <div className="worked-example">
                 <p><strong>Условие.</strong> {methodology.example.source}</p>
                 <h3>Ход решения</h3>
@@ -354,36 +352,50 @@ function LabPage({ lab, subjectArea, profile, onSubjectAreaChange }: { lab: Lab;
                 <p className="example-boundary"><strong>Граница примера.</strong> {methodology.example.boundary}</p>
               </div>
             </ContentSection>
-
-            <ContentSection id="profile" number="07" label="Ваш вариант" title="Условия вашего варианта" icon={<ShieldCheck aria-hidden="true" />}>
-              <p className="profile-intro">Для варианта {subjectArea.code} используйте значения ниже. Они определяют условия выполнения задания.</p>
-              <div className="characteristic-grid">{profile.characteristics.map((item) => (
-                <article className="characteristic-card" key={item.code}>
-                  <span>{item.code}</span><h3>{item.name}</h3><strong>{item.value}</strong><p>{item.example.replaceAll('{system}', subjectArea.title)}</p>
-                </article>
-              ))}</div>
-            </ContentSection>
-
-            <ContentSection id="task" number="08" label="Задание" title="Последовательность действий" icon={<ListChecks aria-hidden="true" />}>
+            </details>
+            <ContentSection id="task" number="01" label="Задание" title="Последовательность действий" icon={<ListChecks aria-hidden="true" />}>
               <p className="task-scope"><strong>Все действия обязательны.</strong> Дополнительные задания в этой работе не предусмотрены.</p>
               <TaskProtocol actions={lab.task.map(labText)} guides={methodology.steps} subjectArea={subjectArea} />
             </ContentSection>
-
-            <ContentSection id="self-check" number="09" label="Перед отправкой" title="Самопроверка" icon={<ClipboardCheck aria-hidden="true" />}>
-              <Checklist items={lab.deliverables.map(x=>`Готово: ${labText(x)}`)} checkboxes />
+            <ContentSection id="self-check" number="02" label="Перед отправкой" title="Самопроверка" icon={<ClipboardCheck aria-hidden="true" />}>
+              <p>Отметьте готовые результаты. Сайт не проверяет ответы; отметки действуют до перезагрузки или смены работы и варианта.</p><Checklist key={`${lab.slug}-${subjectArea.code}`} items={lab.selfCheck.map(x=>`Готово: ${labText(x)}`)} checkboxes />
               
             </ContentSection>
-
-            <ContentSection id="lms-submit" number="10" label="Отчёт и LMS" title="Требования к отчёту и сдаче" icon={<GraduationCap aria-hidden="true" />}>
+            <ContentSection id="lms-submit" number="03" label="Отчёт и LMS" title="Требования к отчёту и сдаче" icon={<GraduationCap aria-hidden="true" />}>
               <p><strong>Один заполненный редактируемый DOCX-файл.</strong></p><h3>Требования к Word-файлу</h3><Checklist items={lab.wordRequirements.map(labText)} />
-              <p className="filename"><strong>Рекомендуемое имя:</strong> <code>{lab.recommendedFileName}</code></p>
-              <ol className="lms-steps">{lab.lmsSteps.map((step) => <li key={step}>{step}</li>)}</ol>
+              <p className="filename"><strong>Рекомендуемое имя:</strong> <code>{lab.recommendedFileName.replace('Вариант', subjectArea.code)}</code></p>
+              <p>Замените «Фамилия» своей фамилией. После сохранения закройте и снова откройте файл: текст и таблицы должны остаться на месте.</p>{!courseConfig.lmsUrl && <p><strong>Куда сдавать:</strong> ссылка на LMS не задана. Уточните способ передачи у преподавателя.</p>}<ol className="lms-steps">{lab.lmsSteps.map((step) => <li key={step}>{step}</li>)}</ol>
               <div className="submission-actions">
                 <a className="button primary" href={reportUrl} download><Download aria-hidden="true" size={18} /> Скачать редактируемый DOCX</a>
                 {courseConfig.lmsUrl&&<a className="button secondary" href={courseConfig.lmsUrl} target="_blank" rel="noreferrer">Перейти в LMS <ExternalLink aria-hidden="true" size={17} /></a>}
               </div>
             </ContentSection>
-
+            <details className="student-reference"><summary>Зачем нужна работа, памятка и связь со следующим заданием</summary>
+            <ContentSection id="goal" number="А" label="Результат обучения" title="Цель и формируемые умения" icon={<Target aria-hidden="true" />}>
+              <p><strong>Цель.</strong> {labText(lab.goal)}</p>
+              <h3>После выполнения вы сможете</h3>
+              <Checklist items={lab.outcomes.map(labText)} />
+            </ContentSection>
+            <ContentSection id="sequence" number="Б" label="Связь работ" title="Место работы в последовательности" icon={<ArrowRight aria-hidden="true" />}>
+              <div className="sequence-grid">
+                <article><span>Результат этой лабораторной работы</span><p>{labText(lab.practicalResult)}</p></article>
+                <article><span>Данные для следующей работы</span><p>{methodology.sequence.next}</p></article>
+              </div>
+              <p className="continuity-note"><strong>Сохраните полученные результаты:</strong> они пригодятся в следующих работах этого варианта. {methodology.sequence.previous}</p><h3>Материалы текущей работы</h3>
+              <Checklist items={[
+                `Архив ЛР ${lab.slug}, вариант ${subjectArea.code}: задание, шаблон для заполнения и данные только этой работы`,
+                `таблицы, правила, ограничения и идентификаторы из раздела «Пояснение к задаче по предметной области»`,
+                `редактируемый шаблон ${lab.reportFile}`,
+              ]} />
+            </ContentSection>
+            <ContentSection id="theory" number="В" label="Теория" title="Памятка для задачи" icon={<BookOpen aria-hidden="true" />}>
+              <div className="theory-grid">{lab.theoryCards.map((card) => (
+                <article className="theory-card" key={`${card.label}-${card.title}`}>
+                  <span>{labText(card.label)}</span><h3>{labText(card.title)}</h3><p>{labText(card.text)}</p>
+                </article>
+              ))}</div>
+            </ContentSection>
+            </details>
             <nav className="lab-pager" aria-label="Соседние лабораторные работы">
               {previous ? <a href={`#/lab/${previous.slug}`}><ArrowLeft aria-hidden="true" /> <span><small>Предыдущая</small>ЛР {previous.slug}</span></a> : <span />}
               {next ? <a href={`#/lab/${next.slug}`}><span><small>Следующая</small>ЛР {next.slug}</span> <ArrowRight aria-hidden="true" /></a> : <span />}
@@ -418,11 +430,11 @@ function TaskProtocol({ actions, guides, subjectArea }: { actions: string[]; gui
         const guide = guides[index]
         return (
           <li key={action}>
-            <h3>{action}</h3>
+            <h3>Шаг {index + 1}. {action}</h3>
             <dl>
               <div><dt>С чем работать</dt><dd>Набор {subjectArea.code}. {guide.data}</dd></div>
-              <div><dt>Результат шага</dt><dd>{guide.result}</dd></div>
-              <div><dt>Проверка</dt><dd>{guide.check}</dd></div>
+              <div><dt>Запишите в отчёт</dt><dd>{guide.result}</dd></div>
+              <div><dt>Шаг готов, если</dt><dd>{guide.check}</dd></div>
             </dl>
           </li>
         )
