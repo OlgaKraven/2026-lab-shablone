@@ -4,3 +4,14 @@ html[data-theme=dark] .hero,html[data-theme=dark] .lab-summary,html[data-theme=d
 .lab-card .semester-pill{background:#e5e8ed;color:#505967!important;border:1px solid #d6dbe3}.lab-card .lab-meta{color:var(--muted)}html[data-theme=dark] .lab-card .semester-pill{background:#303640;color:#c2c9d3!important;border-color:#454c58}
 
 .student-start,.student-reference{padding:1.5rem;margin:1.5rem 0;border:1px solid var(--border);border-radius:1rem;background:var(--surface);color:var(--black)}.student-start{border-left:5px solid var(--red)}.student-start li{margin:.8rem 0;line-height:1.6}.student-start h2{font-size:1.5rem}.student-reference summary{cursor:pointer;font-weight:700;min-height:44px;line-height:1.6}.student-reference .content-section{margin-top:2rem}.student-reference[open] summary{margin-bottom:1rem}.student-reference:focus-within{outline-offset:4px}.student-start p{line-height:1.6}.task-protocol>li::before{display:none}.task-protocol>li{padding-left:1rem}@media(max-width:700px){.student-start,.student-reference{padding:1rem}}
+
+/* Align the three introductory catalog blocks with the banner edges. */
+.site-shell > main > .student-start,
+.site-shell > main > .variant-picker {
+  max-width: 92rem;
+  margin-inline: auto;
+}
+@media (max-width: 620px) {
+  .site-shell > main > .student-start,
+  .site-shell > main > .variant-picker { margin-inline: 0.65rem; }
+}
